@@ -1,16 +1,15 @@
 #include <ncurses.h>
+#include <stdio.h>
 
 #include "args.h"
+#include "buffer.h"
 #include "files.h"
 #include "colors.h"
+#include "line.h"
 
 void init_ncurses();
 
-/* This should be somehow dynamic in the future */
-#define LINE_NUMBER_WINDOW_WIDTH 5
-
 int main(int argc, char **argv) {
-
   const char *filename = parse_filename(argc, argv);
   if (NULL == filename) return 1;
 
@@ -29,30 +28,37 @@ int main(int argc, char **argv) {
       MAX_Y = 0;
   getmaxyx(stdscr, MAX_Y, MAX_X);
 
-  WINDOW *w_content = newwin(MAX_Y, MAX_X, 0, LINE_NUMBER_WINDOW_WIDTH);
-  WINDOW *p_content = subpad(w_content, 0, 0, 0, 0);
+  
+  WINDOW *w_content = newwin(MAX_Y, MAX_X, 0, 0);
+  refresh();
+
+  mvwprintw(w_content, 1, 1, "HELLO TEXT");
 
   keypad(w_content, TRUE);
   keypad(stdscr, TRUE);
-  scrollok(w_content, TRUE);
 
-  // char buf[128];
-  // int line = 1;
-  // while (fgets(buf, sizeof(buf), file) != NULL) {
-  //   mvwprintw(p_content, cursor_y, cursor_x, "%s", buf);
-  //   cursor_y++;
-  // }
+  char c;
+  int line_number = 1;
 
-  // - print file content into buffer
-  // wrefresh(w_content);
-  // prefresh(p_content, 0, 0, 0, 0, 30, 30);
-
-
-  int input;
-  while ((input = getch()) != KEY_F(1)) {
-    pechochar(p_content, input);
-    refresh();
+  Buffer buffer;
+  init_buffer(&buffer);
+  // print_buffer(&buffer);
+  
+  Line line;
+  init_line(&line);
+  while ((c = fgetc(file)) != EOF) {
+    add_char(&line, c);
+    if (c == '\n') {
+      add_line(&buffer, line);
+      init_line(&line);
+    }
   }
+
+  /* Load buffer into window */
+  for (int i = 0; i < buffer.used; i++) {
+    mvwprintw(w_content, i, cursor_x, "%s", buffer.lines[i]);
+  }
+  wrefresh(w_content);
 
   getch();
   endwin();
