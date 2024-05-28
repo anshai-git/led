@@ -4,6 +4,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+void buffer_add_ch(Buffer* buffer, char c, int line, int position) {
+
+}
+
+/*
+ * Read the file and load it into the buffer 
+ * */
+void load_file(Buffer* buffer, FILE* file) {
+  Line line;
+  init_line(&line);
+
+  char c;
+  while ((c = fgetc(file)) != EOF) {
+    add_char(&line, c);
+    if (c == '\n') {
+      add_line(buffer, line);
+      init_line(&line);
+    }
+  }
+}
+
+void buffer_append_empty_line() {
+
+}
+
+void buffer_insert_empty_line_after(int line) {
+
+}
+
 void init_buffer(Buffer* buffer) {
   buffer->lines = malloc(sizeof(Line));
   buffer->capacity = 1;
