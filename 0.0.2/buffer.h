@@ -13,6 +13,21 @@ typedef struct {
 
 void load_file(Buffer* buffer, FILE* file);
 void buffer_add_ch(Buffer* buffer, char c, int line, int position);
+void buffer_del_ch(Buffer* buffer, char c, int line, int position);
+
+void insert_line(Buffer* buffer, Line line, int position);
+
+/*
+ * Append the line under 'source_index' to the line
+ * under 'target_index'
+ * */
+void join_lines(Buffer* buffer, int source_index, int target_index);
+
+/*
+ * Remove the line under 'target_index'
+ * Shitf all lines back accordingly
+ * */
+void remove_line(Buffer* buffer, int target_index);
 
 void buffer_append_empty_line_to_end();
 void buffer_insert_empty_line_after(int line);
