@@ -1,5 +1,6 @@
 #include "buffer.h"
 #include "line.h"
+
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,18 +75,26 @@ void load_file(Buffer *buffer, FILE *file) {
   }
 }
 
-void buffer_append_empty_line() {
+void buffer_append_empty_line_to_end(Buffer* buffer) {
   /* TODO:
    * Not implemented
    * Why would I even need it?
    * */
 }
 
-void buffer_insert_empty_line_after(int line) {
+void buffer_insert_empty_line_after(Buffer* buffer, int line) {
   /* TODO:
    * Not implemented
    * Why would I even need it?
    * */
+}
+
+int buffer_get_line_count(Buffer* buffer) {
+  return buffer->used;
+}
+
+int buffer_get_line_length(Buffer* buffer, int line_index) {
+  return line_get_char_count(&buffer->lines[line_index]);
 }
 
 void init_buffer(Buffer *buffer) {

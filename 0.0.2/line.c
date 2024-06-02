@@ -4,6 +4,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+int line_get_char_count(Line* line) {
+  return line->used;
+}
+
 void split_line(int position, Line* from, Line* to) {
   for (int from_index = position; from_index < from->used; from_index++) {
     add_char(to, from->value[from_index]);

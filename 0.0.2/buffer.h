@@ -12,7 +12,9 @@ typedef struct {
 } Buffer;
 
 void load_file(Buffer* buffer, FILE* file);
+
 void buffer_add_ch(Buffer* buffer, char c, int line, int position);
+
 void buffer_del_ch(Buffer* buffer, char c, int line, int position);
 
 void insert_line(Buffer* buffer, Line line, int position);
@@ -29,12 +31,20 @@ void join_lines(Buffer* buffer, int source_index, int target_index);
  * */
 void remove_line(Buffer* buffer, int target_index);
 
-void buffer_append_empty_line_to_end();
-void buffer_insert_empty_line_after(int line);
+void buffer_append_empty_line_to_end(Buffer* buffer);
+
+void buffer_insert_empty_line_after(Buffer* buffer, int line);
+
+int buffer_get_line_count(Buffer* buffer);
+
+int buffer_get_line_length(Buffer* buffer, int line_index);
 
 void init_buffer(Buffer* buffer);
+
 void add_line(Buffer* buffer, Line line);
+
 void free_buffer(Buffer* buffer);
+
 void print_buffer(Buffer* buffer);
 
 #endif
