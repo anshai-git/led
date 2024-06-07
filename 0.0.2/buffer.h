@@ -39,7 +39,7 @@ int buffer_get_line_count(Buffer* buffer);
 
 int buffer_get_line_length(Buffer* buffer, int line_index);
 
-void init_buffer(Buffer* buffer);
+Buffer* create_buffer();
 
 void add_line(Buffer* buffer, Line line);
 

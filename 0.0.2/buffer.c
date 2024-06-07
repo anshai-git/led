@@ -1,6 +1,7 @@
 #include "buffer.h"
 #include "line.h"
 
+#include <cstdio>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -97,10 +98,25 @@ int buffer_get_line_length(Buffer* buffer, int line_index) {
   return line_get_char_count(&buffer->lines[line_index]);
 }
 
-void init_buffer(Buffer *buffer) {
+Buffer* create_buffer() {
+  Buffer* buffer = malloc(sizeof(Buffer));
+
+  if (NULL == buffer) {
+    /* Failed to allocate memory for buffer */
+    return NULL;
+  }
+
   buffer->lines = malloc(sizeof(Line));
+  if (NULL == buffer->lines) {
+    /* Failed to allocate memory for lines */
+    free(buffer);
+    return NULL;
+  }
+
   buffer->capacity = 1;
   buffer->used = 0;
+
+  return buffer;
 }
 
 void add_line(Buffer *buffer, Line line) {
