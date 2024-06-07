@@ -3,11 +3,9 @@
 /*
  * TODO: write a reasonable argument parser
  * */
-char* parse_filename(int argc, char** argv) {
+char* args_parse_filename(int argc, char **argv) {
   if (argc < 2) {
-    fprintf(stderr,
-            "File path missing\nUsage: %s <file path>\nExample: %s input.txt",
-            argv[0], argv[0]);
+    fprintf(stderr, "File path missing\nUsage: %s <file path>\nExample: %s input.txt", argv[0], argv[0]);
     return NULL;
   }
 

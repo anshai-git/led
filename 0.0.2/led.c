@@ -1,6 +1,5 @@
 #include <ncurses.h>
 #include <stdio.h>
-#include <wchar.h>
 
 #include "args.h"
 #include "buffer.h"
@@ -29,7 +28,7 @@ void handle_file_actions(WINDOW *window, Buffer *buffer, FILE *file, int input);
 void log_line(FILE *log_file, Buffer *buffer, int line_number);
 
 int main(int argc, char **argv) {
-  const char *filename = parse_filename(argc, argv);
+  const char *filename = args_parse_filename(argc, argv);
   if (NULL == filename) return 1;
 
   FILE *logs = fopen("logs.txt", "w");
@@ -61,12 +60,10 @@ int main(int argc, char **argv) {
   int W_CONTENT_MAX_X = 0, W_CONTENT_MAX_Y = 0;
   getmaxyx(w_content, W_CONTENT_MAX_Y, W_CONTENT_MAX_X);
 
-  Buffer buffer;
-  init_buffer(&buffer);
+  Buffer* buffer = create_buffer();
 
-  Line line;
-  init_line(&line);
-  add_line(&buffer, line);
+  Line* line = create_line();
+  buffer_append_line(buffer, *line);
 
   wrefresh(w_status_line);
   wrefresh(w_content);
@@ -77,10 +74,10 @@ int main(int argc, char **argv) {
   while ((input = wgetch(w_content)) != KEY_F(1)) {
     switch (MODE) {
     case NORMAL:
-      handle_input_normal_mode(&buffer, w_content, input, &cursor_y, &cursor_x, &MODE);
+      handle_input_normal_mode(buffer, w_content, input, &cursor_y, &cursor_x, &MODE);
       break;
     case INSERT:
-      handle_input_insert_mode(&buffer, w_content, input, &cursor_y, &cursor_x, &MODE);
+      handle_input_insert_mode(buffer, w_content, input, &cursor_y, &cursor_x, &MODE);
       break;
     case COMMAND:
       enter_command_mode();
@@ -104,7 +101,7 @@ int main(int argc, char **argv) {
     wrefresh(w_content);
   }
 
-  free_buffer(&buffer);
+  buffer_free(buffer);
 
   getch();
   endwin();
@@ -264,8 +261,8 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
 
       /* If we are at the begining of a line and want to delete:
        * append the current line to the line above*/
-      join_lines(buffer, *cursor_y, *cursor_y - 1);
-      remove_line(buffer, *cursor_y);
+      buffer_join_lines(buffer, *cursor_y, *cursor_y - 1);
+      buffer_remove_line(buffer, *cursor_y);
 
       *cursor_y -= 1;
       *cursor_x = top_line_length;
@@ -280,7 +277,7 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
     } else {
       /* If we are anywhere in the line we just delete one character
        * and move the cusrsor back one position */
-      buffer_del_ch(buffer, input, *cursor_y, *cursor_x);
+      buffer_delete_ch(buffer, *cursor_y, *cursor_x);
       *cursor_x -= 1;
 
       wmove(w_content, *cursor_y, *cursor_x);
@@ -295,10 +292,9 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
 
   case KEY_ENTER:
   case 10: {
-    Line line;
-    init_line(&line);
-    split_line(*cursor_x, &buffer->lines[*cursor_y], &line);
-    insert_line(buffer, line, *cursor_y);
+    Line* line = create_line();
+    line_split_line(*cursor_x, &buffer->lines[*cursor_y], line);
+    buffer_insert_line(buffer, *line, *cursor_y);
 
     wclrtobot(w_content);
     for (int i = *cursor_y; i < buffer_get_line_count(buffer); i++) {
@@ -316,7 +312,7 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
      * it means that we have to insert the character */
 
     /* Update Buffer */
-    buffer_add_ch(buffer, input, *cursor_y, *cursor_x);
+    buffer_insert_ch(buffer, input, *cursor_y, *cursor_x);
 
     /* Update Screen */
     w_reprint_line(w_content, buffer, *cursor_y);

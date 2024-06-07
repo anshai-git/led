@@ -9,11 +9,12 @@ typedef struct {
   uint8_t capacity;
 } Command;
 
-void init_command(Command* command);
-void free_command(Command* command);
+/* Allocate memory for a Command and return a pointer to it */
+Command* create_command();
+void command_free(Command* command);
 
-void append_char(Command* command, char c);
-void insert_char(Command* command, char c, uint8_t position);
-void remove_char(Command* command, uint8_t target);
+void command_append_char(Command* command, char c);
+void command_insert_char(Command* command, char c, uint8_t position);
+void command_remove_char(Command* command, uint8_t target);
 
 #endif

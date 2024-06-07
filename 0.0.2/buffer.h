@@ -11,40 +11,52 @@ typedef struct {
   uint8_t used;
 } Buffer;
 
-void load_file(Buffer* buffer, FILE* file);
+/* Read the file and load it into the buffer */
+void buffer_load_file(Buffer* buffer, FILE* file);
 
-void buffer_add_ch(Buffer* buffer, char c, int line, int position);
+/* Insert one character in the line undex @line_index in the position undex @char_index */
+void buffer_insert_ch(Buffer* buffer, char c, int line_index, int char_index);
 
-void buffer_del_ch(Buffer* buffer, char c, int line, int position);
+/* Delete the character in the line under @line_index positioned under @char_index */
+void buffer_delete_ch(Buffer* buffer, int line_index, int char_index);
 
-void insert_line(Buffer* buffer, Line line, int position);
+/* Insert the line under @line under the index @position */
+void buffer_insert_line(Buffer* buffer, Line line, int position);
 
 /*
- * Append the line under 'source_index' to the line
- * under 'target_index'
+ * Append the line under 'source_index' to the line under 'target_index'
+ * Shift all lines after target_index backwards accordingly
  * */
-void join_lines(Buffer* buffer, int source_index, int target_index);
+void buffer_join_lines(Buffer* buffer, int source_index, int target_index);
 
 /*
  * Remove the line under 'target_index'
- * Shitf all lines back accordingly
+ * Shift all lines after target_index backwards accordingly
  * */
-void remove_line(Buffer* buffer, int target_index);
+void buffer_remove_line(Buffer* buffer, int target_index);
 
+/* Insert an empty line to the end of the buffer */
 void buffer_append_empty_line_to_end(Buffer* buffer);
 
-void buffer_insert_empty_line_after(Buffer* buffer, int line);
+/* Insert an empty line after the line under @line_index */
+void buffer_insert_empty_line_after(Buffer* buffer, int line_index);
 
+/* Returns the number of lines in the buffer */
 int buffer_get_line_count(Buffer* buffer);
 
+/* Returns the number of characters in the line under @line_index */
 int buffer_get_line_length(Buffer* buffer, int line_index);
 
+/* Allocate memory for a Buffer */
 Buffer* create_buffer();
 
-void add_line(Buffer* buffer, Line line);
+/* Append one line to the end of the buffer */
+void buffer_append_line(Buffer* buffer, Line line);
 
-void free_buffer(Buffer* buffer);
+/* Free the allocated memory in the buffer */
+void buffer_free(Buffer* buffer);
 
-void print_buffer(Buffer* buffer);
+/* Print a string representation of the buffer to stdout */
+void buffer_print(Buffer* buffer);
 
 #endif

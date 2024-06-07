@@ -4,10 +4,23 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-void init_command(Command* command) {
+Command* create_command() {
+  Command* command = malloc(sizeof(Command));
+
+  /* Memory allocation failed */
+  if (NULL == command) return NULL;
+
+  command->value = malloc(sizeof(char));
+  /* Memory allocation failed */
+  if (NULL == command->value) {
+    free(command);
+    return NULL;
+  }
+
   command->capacity = 1;
   command->used = 0;
-  command->value = malloc(sizeof(char));
+
+  return command;
 }
 
 void free_command(Command* command) {
@@ -18,7 +31,7 @@ void free_command(Command* command) {
   command->value = NULL;
 }
 
-void append_char(Command* command, char c) {
+void command_append_char(Command* command, char c) {
   if (command->capacity == command->used) {
     command->capacity *= 2;
     command->value = realloc(command->value, command->capacity * sizeof(char));
@@ -27,10 +40,10 @@ void append_char(Command* command, char c) {
   command->used += 1;
 }
 
-void insert_char(Command* command, char c, uint8_t position) {
+void command_insert_char(Command* command, char c, uint8_t position) {
   /* @Continue */
 }
 
-void remove_char(Command* command, uint8_t target) {
+void command_remove_char(Command* command, uint8_t target) {
   /* @Continue */
 }

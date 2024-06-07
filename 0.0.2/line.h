@@ -12,18 +12,23 @@ typedef struct {
 
 int line_get_char_count(Line* line);
 
-void insert_char(Line* line, char c, int position);
+void line_insert_char(Line* line, char c, int position);
 
-void delete_char(Line* line, char c, int position);
+void line_delete_char(Line* line, int position);
 
-void split_line(int position, Line* from, Line* to);
+/* Append all the character from index @position in line A to line B */
+void line_split_line(int position, Line* A, Line* B);
 
-void init_line(Line* line);
+/* Allocate memory for a Line and return a pointer to it */
+Line* create_line();
 
-void add_char(Line* line, char c);
+/* Append the character under @c to the end of the line */
+void line_append_char(Line* line, char c);
 
-void free_line(Line* line);
+/* Free the allocated memory in the line */
+void line_free(Line* line);
 
-void print_line(Line* line);
+/* Print a string representation of the line to stdout */
+void line_print(Line* line);
 
 #endif
