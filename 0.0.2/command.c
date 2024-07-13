@@ -2,13 +2,13 @@
 
 #include <stdint.h>
 #include <stdlib.h>
-#include <stdint.h>
 
-Command* create_command() {
-  Command* command = malloc(sizeof(Command));
+Command *create_command() {
+  Command *command = malloc(sizeof(Command));
 
   /* Memory allocation failed */
-  if (NULL == command) return NULL;
+  if (NULL == command)
+    return NULL;
 
   command->value = malloc(sizeof(char));
   /* Memory allocation failed */
@@ -23,7 +23,7 @@ Command* create_command() {
   return command;
 }
 
-void free_command(Command* command) {
+void free_command(Command *command) {
   command->used = 0;
   command->capacity = 0;
 
@@ -31,7 +31,7 @@ void free_command(Command* command) {
   command->value = NULL;
 }
 
-void command_append_char(Command* command, char c) {
+void command_append_char(Command *command, char c) {
   if (command->capacity == command->used) {
     command->capacity *= 2;
     command->value = realloc(command->value, command->capacity * sizeof(char));
@@ -40,10 +40,22 @@ void command_append_char(Command* command, char c) {
   command->used += 1;
 }
 
-void command_insert_char(Command* command, char c, uint8_t position) {
+void command_insert_char(Command *command, char c, uint8_t position) {
   /* @Continue */
+  uint32_t char_index = command->used + 1;
+
+  if (command->capacity == command->used) {
+    command->capacity *= 2;
+    command->value = realloc(command->value, command->capacity * sizeof(char));
+  }
+
+  // teast
+  while (char_index > position) {
+    command->value[char_index] = command->value[char_index-1];
+    char_index -= 1;
+  }
+
+  command->value[char_index - 1] = c;
 }
 
-void command_remove_char(Command* command, uint8_t target) {
-  /* @Continue */
-}
+void command_remove_char(Command *command, uint8_t target) { /* @Continue */ }
