@@ -200,24 +200,30 @@ void enter_command_mode(WINDOW *status_line) {
 
   int input = 0;
   Command* command = create_command();
-  uint8_t position = 1;
+
+  wmove(status_line, 0, 1);
+  wclrtoeol(status_line);
+  mvwprintw(status_line, 0, 1, command->value);
+  wmove(status_line, 0, 1);
+
+  uint8_t position_x = 1;
   while (input != KEY_ENTER && input != 10 /* Enter */ && input != 27 /* Esc / Alt */) {
     input = wgetch(status_line);
 
     switch (input) {
       case KEY_LEFT: {
-        if (position > 1)  {
-          position -= 1;
+        if (position_x > 1)  {
+          position_x -= 1;
         }
       } break;
       case KEY_RIGHT: {
-        if (position < command->used + 1)  {
-          position += 1;
+        if (position_x < command->used + 1)  {
+          position_x += 1;
         }
       } break;
       default: {
-        command_insert_char(command, input, position);
-        position += 1;
+        command_insert_char(command, input, position_x);
+        position_x += 1;
       } break;
     }
 
@@ -225,7 +231,7 @@ void enter_command_mode(WINDOW *status_line) {
     wclrtoeol(status_line);
 
     mvwprintw(status_line, 0, 1, command->value);
-    wmove(status_line, 0, position);
+    wmove(status_line, 0, position_x);
   }
 }
 
@@ -278,8 +284,7 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
   case 127: {
     if (*cursor_x - 1 < 0) {
       /* Cannot delete the 0'th character of the first line */
-      if (*cursor_y - 1 < 0)
-        break;
+      if (*cursor_y - 1 < 0) break;
 
       /* After joining the the two lines we need to place the cursor
        * in the 'middle' so we save the length of the top line */

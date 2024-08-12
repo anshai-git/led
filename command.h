@@ -17,4 +17,6 @@ void command_append_char(Command* command, char c);
 void command_insert_char(Command* command, char c, uint8_t position);
 void command_remove_char(Command* command, uint8_t target);
 
+void command_print_command(Command* command);
+
 #endif
