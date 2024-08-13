@@ -7,6 +7,6 @@ typedef enum {
   COMMAND
 } Editor_Mode;
 
-char *mode_to_string(Editor_Mode mode);
+char* mode_to_string(Editor_Mode mode);
 
 #endif

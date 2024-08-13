@@ -1,4 +1,4 @@
-#include "w_content.h"
+#include "win_buffer.h"
 #include "buffer.h"
 #include "line.h"
 #include <ncurses.h>

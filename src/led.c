@@ -1,3 +1,5 @@
+#include <stdlib.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <ncurses.h>
 #include <stdint.h>
@@ -10,16 +12,25 @@
 #include "files.h"
 #include "line.h"
 #include "mode.h"
-#include "w_content.h"
+#include "win_buffer.h"
+#include "win_status_line.h"
 
 #define CTRL(c) (c & 037)
 
+/* LOGGING > */
+void log_info(const char* message) {
+  FILE *log_file = fopen("logs.txt", "a");
+  if (log_file != NULL) { 
+    fprintf(log_file, "%s", message);
+  }
+  fclose(log_file);
+}
+/* LOGGING < */
+
 void init_ncurses();
 
-void init_ncurses_buffer_win(WINDOW *win);
-
 void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input,
-                              int *cursor_y, int *cursor_x, Editor_Mode *mode);
+                              int *cursor_y, int *cursor_x, Editor_Mode *mode, WINDOW* status_line);
 
 void handle_input_insert_mode(Buffer *buffer, WINDOW *win, int input,
                               int *cursor_y, int *cursor_x, Editor_Mode *mode);
@@ -46,64 +57,39 @@ int main(int argc, char **argv) {
   int cursor_x = 0, cursor_y = 0;
   getbegyx(stdscr, cursor_y, cursor_x);
 
-  int MAX_X = 0, MAX_Y = 0;
-  getmaxyx(stdscr, MAX_Y, MAX_X);
+  int WINDOW_SIZE_X = 0, WINDOW_SIZE_Y = 0;
+  getmaxyx(stdscr, WINDOW_SIZE_Y, WINDOW_SIZE_X);
+
+  /* init ncurses windows */
+  window_status_line = create_status_line_win(WINDOW_SIZE_X, WINDOW_SIZE_Y - 1);
+  /* this should hold the curent window or buffer object, or a wrapper around both */
+  WINDOW *w_content = create_buffer_window(WINDOW_SIZE_Y - 1, WINDOW_SIZE_X, 0, 0);
 
   Editor_Mode MODE = NORMAL;
 
-  WINDOW *w_content = create_buffer_window(MAX_Y - 1, MAX_X, 0, 0);
-  // set_cursor_shape(w_content, STEADY_BAR);
-
-  WINDOW *w_status_line = newwin(1, MAX_X, MAX_Y - 1, 0);
-
-  mvwprintw(w_status_line, 0, 0, "%s", filename);
-  mvwprintw(w_status_line, 0, MAX_X - 20, "%s %2d,%2d", mode_to_string(MODE),
-            cursor_x, cursor_y);
-
-  int W_CONTENT_MAX_X = 0, W_CONTENT_MAX_Y = 0;
-  getmaxyx(w_content, W_CONTENT_MAX_Y, W_CONTENT_MAX_X);
-
   Buffer *buffer = create_buffer();
-
   Line *line = create_line();
   buffer_append_line(buffer, *line);
 
-  wrefresh(w_status_line);
+  update_status_line(filename, WINDOW_SIZE_X, mode_to_string(MODE), cursor_x, cursor_y);
   wrefresh(w_content);
-
   wmove(w_content, cursor_y, cursor_x);
+
   int input;
 
   while ((input = wgetch(w_content)) != KEY_F(2)) {
     switch (MODE) {
     case NORMAL:
-      handle_input_normal_mode(buffer, w_content, input, &cursor_y, &cursor_x,
-                               &MODE);
+      handle_input_normal_mode(buffer, w_content, input, &cursor_y, &cursor_x, &MODE, window_status_line);
       break;
     case INSERT:
-      handle_input_insert_mode(buffer, w_content, input, &cursor_y, &cursor_x,
-                               &MODE);
-      break;
-    case COMMAND:
-      enter_command_mode(w_status_line);
+      handle_input_insert_mode(buffer, w_content, input, &cursor_y, &cursor_x, &MODE);
       break;
     default:
       break;
     }
 
-    /* Handle different kind of actions based on MODES? */
-    // handle_edit_actions(&buffer, w_content, &cursor_y, &cursor_x, input);
-
-    // handle_file_actions(w_content, &buffer, file, input);
-
-    wmove(w_status_line, 0, 0);
-    wclrtoeol(w_status_line);
-
-    mvwprintw(w_status_line, 0, 0, "%s", filename);
-    mvwprintw(w_status_line, 0, MAX_X - 20, "%s %2d,%2d", mode_to_string(MODE),
-              cursor_x, cursor_y);
-
-    wrefresh(w_status_line);
+    update_status_line(filename, WINDOW_SIZE_X, mode_to_string(MODE), cursor_x, cursor_y);
     wrefresh(w_content);
   }
 
@@ -116,8 +102,7 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input,
-                              int *cursor_y, int *cursor_x, Editor_Mode *mode) {
+void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input, int *cursor_y, int *cursor_x, Editor_Mode *mode, /* Temporarily passing the status line*/ WINDOW* status_line) {
   switch (input) {
   case KEY_UP:
   case 'k': {
@@ -169,7 +154,7 @@ void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input,
   } break;
 
   case ':': {
-    *mode = COMMAND;
+    enter_command_mode(status_line);
   } break;
 
   default:
@@ -201,15 +186,9 @@ void enter_command_mode(WINDOW *status_line) {
   int input = 0;
   Command* command = create_command();
 
-  wmove(status_line, 0, 1);
-  wclrtoeol(status_line);
-  mvwprintw(status_line, 0, 1, command->value);
-  wmove(status_line, 0, 1);
-
   uint8_t position_x = 1;
   while (input != KEY_ENTER && input != 10 /* Enter */ && input != 27 /* Esc / Alt */) {
     input = wgetch(status_line);
-
     switch (input) {
       case KEY_LEFT: {
         if (position_x > 1)  {
@@ -221,8 +200,17 @@ void enter_command_mode(WINDOW *status_line) {
           position_x += 1;
         }
       } break;
+      case KEY_BACKSPACE:
+      case KEY_DC:
+      case 127: {
+        if (position_x > 1) {
+          command_remove_char(command, position_x - 1);
+          position_x -= 1;
+        } // TODO: else > invalid command
+      } break;
+
       default: {
-        command_insert_char(command, input, position_x);
+        command_insert_char(command, input, position_x - 1);
         position_x += 1;
       } break;
     }
@@ -356,7 +344,7 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
 void handle_file_actions(WINDOW *window, Buffer *buffer, FILE *file, int input) {
   switch (input) {
   case CTRL('s'): {
-    waddch(window, input + '0');
+    // waddch(window, input + '0');
   } break;
   default:
     break;
