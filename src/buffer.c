@@ -108,6 +108,9 @@ Buffer* create_buffer() {
   buffer->capacity = 1;
   buffer->used = 0;
 
+  buffer->cursor_x = 0;
+  buffer->cursor_y = 0;
+
   return buffer;
 }
 
@@ -129,8 +132,12 @@ void buffer_free(Buffer *buffer) {
   }
   free(buffer->lines);
   buffer->lines = NULL;
+
   buffer->capacity = 0;
   buffer->used = 0;
+
+  buffer->cursor_x = 0;
+  buffer->cursor_y = 0;
 }
 
 void buffer_print(Buffer *buffer) {

@@ -3,6 +3,8 @@
 #include "line.h"
 #include <ncurses.h>
 
+WINDOW* window_buffer = NULL;
+
 void w_load_buffer(WINDOW *win, Buffer *buffer) {
   for (int i = 0; i < buffer->used; i++) {
     mvwprintw(win, i, 0, "%s", buffer->lines[i]);

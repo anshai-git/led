@@ -4,6 +4,8 @@
 #include <ncurses.h>
 #include "buffer.h"
 
+extern WINDOW* window_buffer;
+
 typedef enum {
   STEADY_BLOCK = 0,
   BLINKING_BLOCK,

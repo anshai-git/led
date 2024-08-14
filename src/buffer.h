@@ -7,8 +7,10 @@
 
 typedef struct {
   Line* lines;
-  uint8_t capacity;
-  uint8_t used;
+  uint16_t capacity;
+  uint16_t used;
+  uint16_t cursor_x;
+  uint16_t cursor_y;
 } Buffer;
 
 /* Read the file and load it into the buffer */

@@ -1,9 +1,9 @@
 #include <ncurses.h>
 
-extern WINDOW* window_status_line;
-
 #ifndef _H_WIN_STATUS_LINE_
 #define _H_WIN_STATUS_LINE_
+
+extern WINDOW* window_status_line;
 
 WINDOW* create_status_line_win(int pos_x, int pos_y);
 

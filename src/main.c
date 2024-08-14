@@ -20,7 +20,7 @@
 /* LOGGING > */
 void log_info(const char* message) {
   FILE *log_file = fopen("logs.txt", "a");
-  if (log_file != NULL) { 
+  if (log_file != NULL) {
     fprintf(log_file, "%s", message);
   }
   fclose(log_file);
@@ -29,16 +29,13 @@ void log_info(const char* message) {
 
 void init_ncurses();
 
-void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input,
-                              int *cursor_y, int *cursor_x, Editor_Mode *mode, WINDOW* status_line);
+void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input, Editor_Mode *mode);
 
-void handle_input_insert_mode(Buffer *buffer, WINDOW *win, int input,
-                              int *cursor_y, int *cursor_x, Editor_Mode *mode);
+void handle_input_insert_mode(Buffer *buffer, WINDOW *win, int input, Editor_Mode *mode);
 
 void enter_command_mode(WINDOW* win);
 
-void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
-                         int *cursor_x, int input);
+void handle_edit_actions(Buffer *buffer, WINDOW *window_buffer, int input);
 
 void handle_file_actions(WINDOW *window, Buffer *buffer, FILE *file, int input);
 
@@ -63,7 +60,7 @@ int main(int argc, char **argv) {
   /* init ncurses windows */
   window_status_line = create_status_line_win(WINDOW_SIZE_X, WINDOW_SIZE_Y - 1);
   /* this should hold the curent window or buffer object, or a wrapper around both */
-  WINDOW *w_content = create_buffer_window(WINDOW_SIZE_Y - 1, WINDOW_SIZE_X, 0, 0);
+  window_buffer = create_buffer_window(WINDOW_SIZE_Y - 1, WINDOW_SIZE_X, 0, 0);
 
   Editor_Mode MODE = NORMAL;
 
@@ -71,26 +68,26 @@ int main(int argc, char **argv) {
   Line *line = create_line();
   buffer_append_line(buffer, *line);
 
-  update_status_line(filename, WINDOW_SIZE_X, mode_to_string(MODE), cursor_x, cursor_y);
-  wrefresh(w_content);
-  wmove(w_content, cursor_y, cursor_x);
+  update_status_line(filename, WINDOW_SIZE_X, mode_to_string(MODE), buffer->cursor_x, buffer->cursor_y);
+  wrefresh(window_buffer);
+  wmove(window_buffer, buffer->cursor_y, buffer->cursor_x);
 
   int input;
 
-  while ((input = wgetch(w_content)) != KEY_F(2)) {
+  while ((input = wgetch(window_buffer)) != KEY_F(2)) {
     switch (MODE) {
     case NORMAL:
-      handle_input_normal_mode(buffer, w_content, input, &cursor_y, &cursor_x, &MODE, window_status_line);
+      handle_input_normal_mode(buffer, window_buffer, input, &MODE);
       break;
     case INSERT:
-      handle_input_insert_mode(buffer, w_content, input, &cursor_y, &cursor_x, &MODE);
+      handle_input_insert_mode(buffer, window_buffer, input, &MODE);
       break;
     default:
       break;
     }
 
-    update_status_line(filename, WINDOW_SIZE_X, mode_to_string(MODE), cursor_x, cursor_y);
-    wrefresh(w_content);
+    update_status_line(filename, WINDOW_SIZE_X, mode_to_string(MODE), buffer->cursor_x, buffer->cursor_y);
+    wrefresh(window_buffer);
   }
 
   buffer_free(buffer);
@@ -102,50 +99,50 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input, int *cursor_y, int *cursor_x, Editor_Mode *mode, /* Temporarily passing the status line*/ WINDOW* status_line) {
+void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input, Editor_Mode *mode) {
   switch (input) {
   case KEY_UP:
   case 'k': {
     /* Only move if there is a line that we can move to */
-    if (*cursor_y - 1 >= 0) {
+    if (buffer->cursor_y - 1 >= 0) {
       /*
        * If the cursor is at a position that is ahead of the line above
        * we want to move the cursor at the end of that line.
        * */
-      int top_line_length = buffer_get_line_length(buffer, *cursor_y - 1);
+      int top_line_length = buffer_get_line_length(buffer, buffer->cursor_y - 1);
 
-      *cursor_y -= 1;
-      *cursor_x = top_line_length < *cursor_x ? top_line_length : *cursor_x;
+      buffer->cursor_y -= 1;
+      buffer->cursor_x = top_line_length < buffer->cursor_x ? top_line_length : buffer->cursor_x;
     }
   } break;
 
   case KEY_DOWN:
   case 'j': {
     /* Only move if there is a line that we can move to */
-    if (*cursor_y + 1 <= buffer_get_line_count(buffer) - 1) {
+    if (buffer->cursor_y + 1 <= buffer_get_line_count(buffer) - 1) {
       /*
        * If the cursor is at a position that is ahead of the line below
        * we want to move the cursor at the end of that line.
        * */
-      int bottom_line_length = buffer_get_line_length(buffer, *cursor_y + 1);
+      int bottom_line_length = buffer_get_line_length(buffer, buffer->cursor_y + 1);
 
-      *cursor_y += 1;
-      *cursor_x =
-          bottom_line_length < *cursor_x ? bottom_line_length : *cursor_x;
+      buffer->cursor_y += 1;
+      buffer->cursor_x =
+          bottom_line_length < buffer->cursor_x ? bottom_line_length : buffer->cursor_x;
     }
   } break;
 
   case KEY_LEFT:
   case 'h': {
-    if (*cursor_x - 1 >= 0) {
-      *cursor_x -= 1;
+    if (buffer->cursor_x - 1 >= 0) {
+      buffer->cursor_x -= 1;
     }
   } break;
 
   case KEY_RIGHT:
   case 'l': {
-    if (*cursor_x + 1 <= buffer_get_line_length(buffer, *cursor_y)) {
-      *cursor_x += 1;
+    if (buffer->cursor_x + 1 <= buffer_get_line_length(buffer, buffer->cursor_y)) {
+      buffer->cursor_x += 1;
     }
   } break;
 
@@ -154,18 +151,17 @@ void handle_input_normal_mode(Buffer *buffer, WINDOW *win, int input, int *curso
   } break;
 
   case ':': {
-    enter_command_mode(status_line);
+    enter_command_mode(window_status_line);
   } break;
 
   default:
     break;
   }
 
-  wmove(win, *cursor_y, *cursor_x);
+  wmove(win, buffer->cursor_y, buffer->cursor_x);
 }
 
-void handle_input_insert_mode(Buffer *buffer, WINDOW *win, int input,
-                              int *cursor_y, int *cursor_x, Editor_Mode *mode) {
+void handle_input_insert_mode(Buffer *buffer, WINDOW *win, int input, Editor_Mode *mode) {
   /* Check for ESC key
    * NOTE: 27 can be either ESC or ALT
    * */
@@ -174,8 +170,8 @@ void handle_input_insert_mode(Buffer *buffer, WINDOW *win, int input,
     return;
   }
 
-  handle_edit_actions(buffer, win, cursor_y, cursor_x, input);
-  wmove(win, *cursor_y, *cursor_x);
+  handle_edit_actions(buffer, win, input);
+  wmove(win, buffer->cursor_y, buffer->cursor_x);
 }
 
 void enter_command_mode(WINDOW *status_line) {
@@ -223,106 +219,105 @@ void enter_command_mode(WINDOW *status_line) {
   }
 }
 
-void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
-                         int *cursor_x, int input) {
+void handle_edit_actions(Buffer *buffer, WINDOW *window_buffer, int input) {
   switch (input) {
   case KEY_UP: {
     /* Only move if there is a line that we can move to */
-    if (*cursor_y - 1 >= 0) {
+    if (buffer->cursor_y - 1 >= 0) {
       /*
        * If the cursor is at a position that is ahead of the line above
        * we want to move the cursor at the end of that line.
        * */
-      int top_line_length = buffer_get_line_length(buffer, *cursor_y - 1);
+      int top_line_length = buffer_get_line_length(buffer, buffer->cursor_y - 1);
 
-      *cursor_y -= 1;
-      *cursor_x = top_line_length < *cursor_x ? top_line_length : *cursor_x;
+      buffer->cursor_y -= 1;
+      buffer->cursor_x = top_line_length < buffer->cursor_x ? top_line_length : buffer->cursor_x;
     }
   } break;
 
   case KEY_DOWN: {
     /* Only move if there is a line that we can move to */
-    if (*cursor_y + 1 <= buffer_get_line_count(buffer) - 1) {
+    if (buffer->cursor_y + 1 <= buffer_get_line_count(buffer) - 1) {
       /*
        * If the cursor is at a position that is ahead of the line below
        * we want to move the cursor at the end of that line.
        * */
-      int bottom_line_length = buffer_get_line_length(buffer, *cursor_y + 1);
+      int bottom_line_length = buffer_get_line_length(buffer, buffer->cursor_y + 1);
 
-      *cursor_y += 1;
-      *cursor_x =
-          bottom_line_length < *cursor_x ? bottom_line_length : *cursor_x;
+      buffer->cursor_y += 1;
+      buffer->cursor_x =
+          bottom_line_length < buffer->cursor_x ? bottom_line_length : buffer->cursor_x;
     }
   } break;
 
   case KEY_LEFT: {
-    if (*cursor_x - 1 >= 0) {
-      *cursor_x -= 1;
+    if (buffer->cursor_x - 1 >= 0) {
+      buffer->cursor_x -= 1;
     }
   } break;
 
   case KEY_RIGHT: {
-    if (*cursor_x + 1 <= buffer_get_line_length(buffer, *cursor_y)) {
-      *cursor_x += 1;
+    if (buffer->cursor_x + 1 <= buffer_get_line_length(buffer, buffer->cursor_y)) {
+      buffer->cursor_x += 1;
     }
   } break;
 
   case KEY_BACKSPACE:
   case KEY_DC:
   case 127: {
-    if (*cursor_x - 1 < 0) {
+    if (buffer->cursor_x - 1 < 0) {
       /* Cannot delete the 0'th character of the first line */
-      if (*cursor_y - 1 < 0) break;
+      if (buffer->cursor_y - 1 < 0) break;
 
       /* After joining the the two lines we need to place the cursor
        * in the 'middle' so we save the length of the top line */
-      int top_line_length = buffer_get_line_length(buffer, *cursor_y - 1);
+      int top_line_length = buffer_get_line_length(buffer, buffer->cursor_y - 1);
 
       /* If we are at the begining of a line and want to delete:
        * append the current line to the line above*/
-      buffer_join_lines(buffer, *cursor_y, *cursor_y - 1);
-      buffer_remove_line(buffer, *cursor_y);
+      buffer_join_lines(buffer, buffer->cursor_y, buffer->cursor_y - 1);
+      buffer_remove_line(buffer, buffer->cursor_y);
 
-      *cursor_y -= 1;
-      *cursor_x = top_line_length;
+      buffer->cursor_y -= 1;
+      buffer->cursor_x = top_line_length;
 
-      wclrtobot(w_content);
+      wclrtobot(window_buffer);
 
       /* In case a whole line is deleted all the lines below that
        * are shifted so we need to redraw all the lines below */
-      for (int i = *cursor_y; i < buffer_get_line_count(buffer); i++) {
-        w_reprint_line(w_content, buffer, i);
+      for (int i = buffer->cursor_y; i < buffer_get_line_count(buffer); i++) {
+        w_reprint_line(window_buffer, buffer, i);
       }
     } else {
       /* If we are anywhere in the line we just delete one character
        * and move the cusrsor back one position */
-      buffer_delete_ch(buffer, *cursor_y, *cursor_x);
-      *cursor_x -= 1;
+      buffer_delete_ch(buffer, buffer->cursor_y, buffer->cursor_x);
+      buffer->cursor_x -= 1;
 
-      wmove(w_content, *cursor_y, *cursor_x);
-      wclrtoeol(w_content);
+      wmove(window_buffer, buffer->cursor_y, buffer->cursor_x);
+      wclrtoeol(window_buffer);
 
       /* In case of a single character removal on a line we only
        * need to redraw that one specific line */
-      w_reprint_line(w_content, buffer, *cursor_y);
+      w_reprint_line(window_buffer, buffer, buffer->cursor_y);
     }
   } break;
 
   case KEY_ENTER:
   case 10: {
     Line *line = create_line();
-    line_split_line(*cursor_x, &buffer->lines[*cursor_y], line);
-    buffer_insert_line(buffer, *line, *cursor_y);
+    line_split_line(buffer->cursor_x, &buffer->lines[buffer->cursor_y], line);
+    buffer_insert_line(buffer, *line, buffer->cursor_y);
 
-    wclrtobot(w_content);
-    for (int i = *cursor_y; i < buffer_get_line_count(buffer); i++) {
-      w_reprint_line(w_content, buffer, i);
+    wclrtobot(window_buffer);
+    for (int i = buffer->cursor_y; i < buffer_get_line_count(buffer); i++) {
+      w_reprint_line(window_buffer, buffer, i);
     }
 
-    *cursor_y += 1;
-    *cursor_x = 0;
+    buffer->cursor_y += 1;
+    buffer->cursor_x = 0;
 
-    w_reprint_line(w_content, buffer, *cursor_y);
+    w_reprint_line(window_buffer, buffer, buffer->cursor_y);
   } break;
 
   default: {
@@ -330,13 +325,13 @@ void handle_edit_actions(Buffer *buffer, WINDOW *w_content, int *cursor_y,
      * it means that we have to insert the character */
 
     /* Update Buffer */
-    buffer_insert_ch(buffer, input, *cursor_y, *cursor_x);
+    buffer_insert_ch(buffer, input, buffer->cursor_y, buffer->cursor_x);
 
     /* Update Screen */
-    w_reprint_line(w_content, buffer, *cursor_y);
+    w_reprint_line(window_buffer, buffer, buffer->cursor_y);
 
     /* update current position */
-    *cursor_x += 1;
+    buffer->cursor_x += 1;
   } break;
   }
 }
